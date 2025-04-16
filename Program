@@ -1,0 +1,236 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+
+class Program
+{
+    static string arquivo = "alunos.txt"; // Nome do arquivo de cadastro
+
+    static void Main(string[] args)
+    {
+        // Verifica se o arquivo já existe, caso contrário cria com um cabeçalho
+        if (!File.Exists(arquivo))
+        {
+            string conteudo = "Cadastro de alunos\n"; // Cabeçalho
+            File.WriteAllText(arquivo, conteudo);
+            Console.WriteLine("Arquivo de cadastro criado com sucesso!");
+        }
+        else
+        {
+            Console.WriteLine("Arquivo já existe, não foi criado novamente.");
+        }
+
+        // Menu principal com opções para o usuário
+        Console.WriteLine("\nOlá, seja bem-vindo! O que deseja fazer?");
+        while (true)
+        {
+            // Exibe as opções para o usuário escolher
+            Console.WriteLine("\n1 - Cadastrar aluno");
+            Console.WriteLine("2 - Exibir lista de alunos");
+            Console.WriteLine("3 - Editar aluno");
+            Console.WriteLine("4 - Excluir aluno");
+            Console.WriteLine("5 - Sair");
+
+            // Lê a opção escolhida pelo usuário e valida se é um número
+            if (!int.TryParse(Console.ReadLine(), out int opcao))
+            {
+                Console.WriteLine("Digite um número válido!");
+                continue;
+            }
+
+            // Executa o caso baseado na opção escolhida
+            switch (opcao)
+            {
+                case 1:
+                    CadastrarAluno(); // Cadastrar um aluno
+                    break;
+                case 2:
+                    ExibirListaAlunos(); // Exibir todos os alunos cadastrados
+                    break;
+                case 3:
+                    EditarAluno(); // Editar um aluno
+                    break;
+                case 4:
+                    ExcluirAluno(); // Excluir um aluno
+                    break;
+                case 5:
+                    Console.WriteLine("Saindo do programa..."); // Encerra o programa
+                    return;
+                default:
+                    Console.WriteLine("Opção inválida, selecione dentre as listadas.");
+                    break;
+            }
+        }
+    }
+
+    // Método para cadastrar aluno
+    static void CadastrarAluno()
+    {
+        Console.WriteLine("Digite o nome do aluno:");
+        string nome = Console.ReadLine();
+
+        Console.WriteLine("Digite a idade do aluno:");
+        if (!int.TryParse(Console.ReadLine(), out int idade))
+        {
+            Console.WriteLine("Idade inválida!");
+            return;
+        }
+
+        Console.WriteLine("Digite o curso do aluno:");
+        string curso = Console.ReadLine();
+
+        Console.WriteLine("Digite a matrícula do aluno:");
+        string matricula = Console.ReadLine();
+
+        // Formata e adiciona os dados ao arquivo
+        string linha = $"Nome: {nome} | Idade: {idade} | Curso: {curso} | Matrícula: {matricula}";
+        File.AppendAllText(arquivo, linha + "\n");
+        Console.WriteLine("Aluno cadastrado com sucesso!");
+    }
+
+    // Método para exibir a lista de alunos cadastrados
+    static void ExibirListaAlunos()
+    {
+        string[] linhas = File.ReadAllLines(arquivo); // Lê todas as linhas do arquivo
+
+        // Se não houver alunos cadastrados, exibe mensagem
+        if (linhas.Length <= 1)
+        {
+            Console.WriteLine("Nenhum aluno cadastrado ainda.");
+            return;
+        }
+
+        Console.WriteLine("\nLista de alunos cadastrados:\n");
+
+        // Exibe as informações de cada aluno (ignorando o cabeçalho)
+        for (int i = 1; i < linhas.Length; i++) // começa do índice 1 para pular o cabeçalho
+        {
+            Console.WriteLine(linhas[i]); // Exibe a linha formatada
+        }
+    }
+
+    // Método para editar aluno
+    static void EditarAluno()
+    {
+        Console.WriteLine("Digite a matrícula do aluno que deseja editar:");
+        string matriculaBusca = Console.ReadLine(); // Lê a matrícula do aluno a ser editado
+
+        string[] linhas = File.ReadAllLines(arquivo); // Lê todas as linhas do arquivo
+        List<string> novasLinhas = new List<string>(); // Lista para armazenar as linhas após edição
+
+        bool alunoEncontrado = false;
+        novasLinhas.Add(linhas[0]); // Adiciona o cabeçalho ao novo arquivo
+
+        // Percorre as linhas para encontrar o aluno e editar seus dados
+        for (int i = 1; i < linhas.Length; i++)
+        {
+            string linha = linhas[i];
+            string[] partes = linha.Split('|'); // Divide os dados da linha
+
+            bool editar = false;
+
+            // Verifica a matrícula do aluno
+            foreach (var parte in partes)
+            {
+                if (parte.Trim().StartsWith("Matrícula:"))
+                {
+                    string matricula = parte.Split(':')[1].Trim();
+                    if (matricula == matriculaBusca)
+                    {
+                        editar = true; // Marca para editar
+                        alunoEncontrado = true;
+                        break;
+                    }
+                }
+            }
+
+            // Se for para editar, pede ao usuário os novos dados
+            if (editar)
+            {
+                Console.WriteLine("Aluno encontrado. Digite os novos dados:");
+
+                Console.WriteLine("Digite o nome do aluno:");
+                string nome = Console.ReadLine();
+
+                Console.WriteLine("Digite a idade do aluno:");
+                int idade = int.Parse(Console.ReadLine());
+
+                Console.WriteLine("Digite o curso do aluno:");
+                string curso = Console.ReadLine();
+
+                // Modifica a linha com os novos dados
+                string novaLinha = $"Nome: {nome} | Idade: {idade} | Curso: {curso} | Matrícula: {matriculaBusca}";
+                novasLinhas.Add(novaLinha); // Adiciona a linha com os dados alterados
+            }
+            else
+            {
+                novasLinhas.Add(linha); // Mantém a linha original se não for para editar
+            }
+        }
+
+        // Se o aluno foi encontrado e editado, grava as novas linhas no arquivo
+        if (alunoEncontrado)
+        {
+            File.WriteAllLines(arquivo, novasLinhas); // Regrava o arquivo com os dados alterados
+            Console.WriteLine("Aluno editado com sucesso!");
+        }
+        else
+        {
+            Console.WriteLine("Aluno não encontrado.");
+        }
+    }
+
+    // Método para excluir aluno
+    static void ExcluirAluno()
+    {
+        Console.WriteLine("Digite a matrícula do aluno que deseja excluir:");
+        string matriculaBusca = Console.ReadLine(); // Lê a matrícula do aluno a ser excluído
+
+        string[] linhas = File.ReadAllLines(arquivo); // Lê todas as linhas do arquivo
+        List<string> novasLinhas = new List<string>(); // Lista para armazenar as linhas após a exclusão
+
+        bool alunoEncontrado = false;
+        novasLinhas.Add(linhas[0]); // Adiciona o cabeçalho ao novo arquivo
+
+        // Percorre as linhas para encontrar e excluir o aluno
+        for (int i = 1; i < linhas.Length; i++)
+        {
+            string linha = linhas[i];
+            string[] partes = linha.Split('|'); // Divide os dados da linha
+
+            bool excluir = false;
+
+            // Verifica a matrícula do aluno
+            foreach (var parte in partes)
+            {
+                if (parte.Trim().StartsWith("Matrícula:"))
+                {
+                    string matricula = parte.Split(':')[1].Trim();
+                    if (matricula == matriculaBusca)
+                    {
+                        excluir = true; // Marca para excluir
+                        alunoEncontrado = true;
+                        break;
+                    }
+                }
+            }
+
+            // Se não for para excluir, mantém a linha
+            if (!excluir)
+            {
+                novasLinhas.Add(linha);
+            }
+        }
+
+        // Se o aluno foi encontrado e excluído, grava as novas linhas no arquivo
+        if (alunoEncontrado)
+        {
+            File.WriteAllLines(arquivo, novasLinhas); // Regrava o arquivo com os dados atualizados
+            Console.WriteLine("Aluno excluído com sucesso!");
+        }
+        else
+        {
+            Console.WriteLine("Aluno não encontrado.");
+        }
+    }
+}
