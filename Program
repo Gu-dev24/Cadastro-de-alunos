@@ -22,7 +22,8 @@ class Program
 
         // Menu principal com opções para o usuário
         Console.WriteLine("\nOlá, seja bem-vindo! O que deseja fazer?");
-        while (true)
+        bool sair = false;
+        while (!sair)
         {
             // Exibe as opções para o usuário escolher
             Console.WriteLine("\n1 - Cadastrar aluno");
@@ -54,7 +55,8 @@ class Program
                     ExcluirAluno(); // Excluir um aluno
                     break;
                 case 5:
-                    Console.WriteLine("Saindo do programa..."); // Encerra o programa
+                    Console.WriteLine("Saindo do programa...");
+                    sair = true;
                     return;
                 default:
                     Console.WriteLine("Opção inválida, selecione dentre as listadas.");
