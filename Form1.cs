@@ -10,7 +10,7 @@ namespace CadastroAlunos
     {
         private string filePath = "Alunos.txt";
         private List<Aluno> alunos = new List<Aluno>();
-        private Aluno alunoEditando = null; // Armazena aluno em edição
+        private Aluno alunoEditando = null;
 
         public Form1()
         {
@@ -49,7 +49,6 @@ namespace CadastroAlunos
                 };
                 alunos.Add(aluno);
             }
-            AtualizarContagem();
         }
 
         private void SalvarAlunos()
@@ -63,7 +62,6 @@ namespace CadastroAlunos
                     sw.WriteLine($"Nome : {aluno.Nome} | Idade: {aluno.Idade} | Curso: {aluno.Curso} | Matrícula: {aluno.Matricula} | Nota: {aluno.Nota}");
                 }
             }
-            AtualizarContagem();
         }
 
         private void AtualizarListaAlunos()
@@ -71,71 +69,96 @@ namespace CadastroAlunos
             listBoxAlunos.Items.Clear();
             foreach (var aluno in alunos)
             {
-                listBoxAlunos.Items.Add($"Nome : {aluno.Nome} | Idade: {aluno.Idade} | Curso: {aluno.Curso} | Matrícula: {aluno.Matricula} | Nota: {aluno.Nota}");
+                listBoxAlunos.Items.Add(FormatarAluno(aluno));
             }
-            AtualizarContagem();
+            lblContagemAlunos.Text = $"Alunos cadastrados: {alunos.Count}";
         }
 
-        private void AtualizarContagem()
+        private string FormatarAluno(Aluno a)
         {
-            lblContagemAlunos.Text = $"Alunos cadastrados : {alunos.Count}";
+            return $"Nome : {a.Nome} | Idade: {a.Idade} | Curso: {a.Curso} | Matrícula: {a.Matricula} | Nota: {a.Nota}";
         }
 
         private void btnPesquisar_Click(object sender, EventArgs e)
         {
-            if (!int.TryParse(txtPesquisaMatricula.Text, out int matricula))
-            {
-                MessageBox.Show("Digite uma matrícula válida!");
-                return;
-            }
+            string nome = txtPesquisaNome.Text.Trim();
+            string matriculaStr = txtPesquisaMatricula.Text.Trim();
+            List<Aluno> resultados = new List<Aluno>();
 
-            var aluno = alunos.FirstOrDefault(a => a.Matricula == matricula);
-            if (aluno == null)
+            if (!string.IsNullOrEmpty(nome))
+                resultados = alunos.Where(a => a.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            else if (int.TryParse(matriculaStr, out int matricula))
+                resultados = alunos.Where(a => a.Matricula == matricula).ToList();
+
+            if (resultados.Any())
             {
-                if (MessageBox.Show("Aluno não encontrado. Deseja cadastrar?", "Novo Aluno", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                listBoxAlunos.Items.Clear();
+                foreach (var aluno in resultados)
+                    listBoxAlunos.Items.Add(FormatarAluno(aluno));
+            }
+            else
+            {
+                MessageBox.Show("Nenhum aluno encontrado.");
+                AtualizarListaAlunos();
+            }
+        }
+
+        private void listBoxAlunos_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (listBoxAlunos.SelectedIndex >= 0)
+            {
+                string linha = listBoxAlunos.SelectedItem.ToString();
+                int matricula = int.Parse(linha.Split('|')[3].Split(':')[1].Trim());
+                alunoEditando = alunos.FirstOrDefault(a => a.Matricula == matricula);
+            }
+        }
+
+        private void btnEditar_Click(object sender, EventArgs e)
+        {
+            if (alunoEditando != null)
+            {
+                txtNome.Text = alunoEditando.Nome;
+                txtIdade.Text = alunoEditando.Idade.ToString();
+                txtCurso.Text = alunoEditando.Curso;
+                txtMatricula.Text = alunoEditando.Matricula.ToString();
+                txtNota.Text = alunoEditando.Nota.ToString();
+                groupBoxCadastro.Visible = true;
+            }
+            else
+            {
+                MessageBox.Show("Selecione um aluno para editar.");
+            }
+        }
+
+        private void btnExcluir_Click(object sender, EventArgs e)
+        {
+            if (alunoEditando != null)
+            {
+                if (MessageBox.Show("Deseja realmente excluir o aluno?", "Confirmação", MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
-                    LimparCamposCadastro();
-                    txtMatricula.Text = txtPesquisaMatricula.Text;
-                    panelCadastro.Visible = true;
+                    alunos.Remove(alunoEditando);
                     alunoEditando = null;
+                    SalvarAlunos();
+                    AtualizarListaAlunos();
                 }
             }
             else
             {
-                string dados = $"Nome : {aluno.Nome} | Idade: {aluno.Idade} | Curso: {aluno.Curso} | Matrícula: {aluno.Matricula} | Nota: {aluno.Nota}";
+                MessageBox.Show("Selecione um aluno para excluir.");
+            }
+        }
 
-                var resultado = MessageBox.Show(
-                    $"Aluno encontrado:\n{dados}\n\nEscolha uma ação:\n- Editar (clique em 'Sim')\n- Excluir (clique em 'Não')\n- Verificar aprovação (clique em 'Cancelar')",
-                    "Aluno encontrado",
-                    MessageBoxButtons.YesNoCancel,
-                    MessageBoxIcon.Information,
-                    MessageBoxDefaultButton.Button1);
-
-                if (resultado == DialogResult.Yes) // Editar
-                {
-                    alunoEditando = aluno;
-                    txtNome.Text = aluno.Nome;
-                    txtIdade.Text = aluno.Idade.ToString();
-                    txtCurso.Text = aluno.Curso;
-                    txtMatricula.Text = aluno.Matricula.ToString();
-                    txtNota.Text = aluno.Nota.ToString();
-                    panelCadastro.Visible = true;
-                }
-                else if (resultado == DialogResult.No) // Excluir
-                {
-                    if (MessageBox.Show("Deseja realmente excluir este aluno?", "Excluir", MessageBoxButtons.YesNo) == DialogResult.Yes)
-                    {
-                        alunos.Remove(aluno);
-                        SalvarAlunos();
-                        AtualizarListaAlunos();
-                        MessageBox.Show("Aluno excluído com sucesso!");
-                    }
-                }
-                else if (resultado == DialogResult.Cancel) // Verificar aprovação
-                {
-                    string status = aluno.Nota > 69 ? "Aprovado" : "Reprovado";
-                    MessageBox.Show($"Aluno está {status}\nNota: {aluno.Nota}", "Verificar aprovação");
-                }
+        private void btnVerificarAprovacao_Click(object sender, EventArgs e)
+        {
+            if (alunoEditando != null)
+            {
+                string status = alunoEditando.Nota >= 70 ? "Aprovado" : "Reprovado";
+                MessageBox.Show($"Aluno está {status} com nota {alunoEditando.Nota}");
+            }
+            else
+            {
+                MessageBox.Show("Selecione um aluno para verificar aprovação.");
             }
         }
 
@@ -143,71 +166,69 @@ namespace CadastroAlunos
         {
             int matriculaNova = int.Parse(txtMatricula.Text);
 
-            // Verifica se matrícula existe em outro aluno
             if (alunos.Any(a => a.Matricula == matriculaNova && a != alunoEditando))
             {
-                MessageBox.Show("Matrícula já existente. Não é possível cadastrar o aluno.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Matrícula já cadastrada para outro aluno.");
                 return;
             }
 
             if (alunoEditando != null)
             {
-                // Atualizar dados do aluno existente
                 alunoEditando.Nome = txtNome.Text;
                 alunoEditando.Idade = int.Parse(txtIdade.Text);
                 alunoEditando.Curso = txtCurso.Text;
                 alunoEditando.Matricula = matriculaNova;
                 alunoEditando.Nota = int.Parse(txtNota.Text);
-
                 alunoEditando = null;
-                MessageBox.Show("Dados do aluno atualizados com sucesso!");
+                MessageBox.Show("Aluno atualizado com sucesso.");
             }
             else
             {
-                // Novo cadastro
-                var novoAluno = new Aluno
+                alunos.Add(new Aluno
                 {
                     Nome = txtNome.Text,
                     Idade = int.Parse(txtIdade.Text),
                     Curso = txtCurso.Text,
                     Matricula = matriculaNova,
                     Nota = int.Parse(txtNota.Text)
-                };
-
-                alunos.Add(novoAluno);
-                MessageBox.Show("Aluno cadastrado com sucesso!");
+                });
+                MessageBox.Show("Aluno cadastrado com sucesso.");
             }
 
             SalvarAlunos();
             AtualizarListaAlunos();
-            panelCadastro.Visible = false;
-        }
-
-        private void btnAprovacaoGeral_Click(object sender, EventArgs e)
-        {
-            int aprovados = alunos.Count(a => a.Nota > 69);
-            int reprovados = alunos.Count - aprovados;
-            double total = alunos.Count;
-
-            string mensagem = $"Aprovados: {aprovados} ({(aprovados / total * 100):0.##}%)\n" +
-                              $"Reprovados: {reprovados} ({(reprovados / total * 100):0.##}%)";
-            MessageBox.Show(mensagem, "Aprovação Geral");
+            groupBoxCadastro.Visible = false;
         }
 
         private void btnNovoAluno_Click(object sender, EventArgs e)
         {
-            LimparCamposCadastro();
-            panelCadastro.Visible = true;
             alunoEditando = null;
+            txtNome.Clear();
+            txtIdade.Clear();
+            txtCurso.Clear();
+            txtMatricula.Clear();
+            txtNota.Clear();
+            groupBoxCadastro.Visible = true;
         }
 
-        private void LimparCamposCadastro()
+        private void btnAtualizarRelatorio_Click(object sender, EventArgs e)
         {
-            txtNome.Text = "";
-            txtIdade.Text = "";
-            txtCurso.Text = "";
-            txtMatricula.Text = "";
-            txtNota.Text = "";
+            if (alunos.Count == 0)
+            {
+                lblRelatorio.Text = "Nenhum aluno cadastrado.";
+                return;
+            }
+
+            int aprovados = alunos.Count(a => a.Nota >= 70);
+            int reprovados = alunos.Count - aprovados;
+            double media = alunos.Average(a => a.Nota);
+            double maxNota = alunos.Max(a => a.Nota);
+            double minNota = alunos.Min(a => a.Nota);
+
+            lblRelatorio.Text = $"Total de alunos: {alunos.Count}\n" +
+                                $"Aprovados: {aprovados} ({(aprovados * 100.0 / alunos.Count):0.##}%)\n" +
+                                $"Reprovados: {reprovados} ({(reprovados * 100.0 / alunos.Count):0.##}%)\n\n" +
+                                $"Nota média: {media:0.00}\nNota máxima: {maxNota}\nNota mínima: {minNota}";
         }
     }
 
